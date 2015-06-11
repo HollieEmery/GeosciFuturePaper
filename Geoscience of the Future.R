@@ -8,6 +8,7 @@ setwd("~/Dropbox/GFP_N2NarragansettBay")
 
 library(plotrix)
 library(Hmisc)
+library(gdata)
 
 se<-function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
@@ -102,8 +103,55 @@ mtext(side = 1, text = expression(O[2] ~ Flux ~ (mu ~ mol ~ m^{-2} ~ h^{-1})), l
 #Figure 4. Individual net sediment N$_2$ fluxes as a function of sediment oxygen demand for the Providence River Estuary (closed circles) and mid-Narragansett Bay (open circles). N$_2$ was significantly correlated (0.0006) to sediment oxygen demand but the overall predictive power of the relationship was weak (N$_2$-N flux = 0.038(O$_2$ flux) – 5.58; R$^2$ = 0.09, n = 134).
 
 ##### Figure 5 ####
-Fig5 <- read.csv("Fig5.csv", stringsAsFactors=FALSE)
-#Fig5 <- na.omit(Fig5)
+
+#import datas
+SmaydaData <- read.csv("SmaydaData.csv", stringsAsFactors=FALSE)
+GSOData <- read.xls("http://www.gso.uri.edu/phytoplankton/chldata.xls", stringsAsFactors=FALSE)
+
+## GSO data clean-up
+
+# fix dates
+GSOData$Sample.Date.1=as.POSIXct(strptime(GSOData$Sample.Date.1,format="%d-%b-%y",tz="EST"))
+
+#get rid of unused columns: redundant date, empty columns, pheophytin and >20 um stuff
+names(GSOData)
+junk=c(1,3,5,7:12,15,17:24)
+GSOData[,junk] <- list(NULL)
+
+# get rid of blank rows where changes in methods are indicated in the xls
+junkrows=which(GSOData$Sample.Date.1=="" | is.na(GSOData$Sample.Date.1))
+GSOData=GSOData[-junkrows,]
+
+#make a year column and drop 2012 data
+GSOData$year=format(GSOData$Sample.Date.1,"%Y")
+x2012 <- which(GSOData$year=="2012")
+GSOData=GSOData[-x2012,]
+
+# make values numeric
+frozen.chla=as.numeric(GSOData$Surface.Chla.all)
+fresh.chla=as.numeric(GSOData$surface.chla.all)
+
+# date that immediate extraction began
+imex=as.POSIXct("2007-05-07",tz="EST")
+
+# fill in recent blanks in frozen data with corrected immediate extraction data
+for(i in 1:length(frozen.chla)){
+  if(GSOData$Sample.Date.1[i]>imex & is.na(frozen.chla[i]) & !is.na(fresh.chla[i])){
+    frozen.chla[i] <- fresh.chla[i]*.4323
+  }
+}
+
+# pull out annual means
+ann.means=as.data.frame(cbind(as.integer(unique(GSOData$year)),as.numeric(tapply(frozen.chla,GSOData$year,mean,na.rm=TRUE))))
+names(ann.means) <- names(SmaydaData)
+
+## NOTE: These values differ from the published values for 2008, 2009, and 2013!! WHY>? (Other years match.)
+
+## This is the data that RWF sent out:
+#Fig5 <- read.csv("Fig5.csv", stringsAsFactors=FALSE)
+
+## This is the data from the above code:
+Fig5 <- rbind(SmaydaData,ann.means)
 
 exp.lm <- lm(log(Fig5$chl_a)~Fig5$Year)
 #summary(exp.lm)
