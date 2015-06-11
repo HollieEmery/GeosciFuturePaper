@@ -12,7 +12,7 @@ library(Hmisc)
 se<-function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
 #### Figure 3 ####
-#### data import ####
+# data import
 dat=read.csv("Fig3.csv",header=TRUE)
 
 #fix dates
