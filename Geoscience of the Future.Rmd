@@ -8,7 +8,7 @@ output: html_document
 Starting with Fig 3, be sure to set your working directory to the Dropbox shared folder for now. If you are using a Mac, the directory will be set automatically, but you'll have to do it manually if you are using a PC.
 
 ```{r,echo=FALSE}
-#### this is me making a change!!! ####
+#### this is me making a change!!!! ####
 
 if(.Platform$OS.type=="unix"){
   setwd("~/Dropbox/GFP_N2NarragansettBay")
