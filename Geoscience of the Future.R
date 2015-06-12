@@ -9,17 +9,33 @@ setwd("~/Dropbox/GFP_N2NarragansettBay")
 library(plotrix)
 library(Hmisc)
 library(gdata)
+library(plyr)
 
 se<-function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
 #### Figure 3 ####
-# data import
-dat=read.csv("Fig3.csv",header=TRUE)
+#### data import ####
+mimsdata <- read.csv("Fig4.csv", stringsAsFactors=FALSE)
+mimsdata$date=format(as.POSIXct(strptime(mimsdata$Date,format="%m/%d/%Y",tz="EST")),"%Y-%m")
+#mimsdata = na.omit(mimsdata)
 
-#fix dates
-dat$date=format(as.POSIXct(strptime(dat$Date,format="%m/%d/%Y",tz="EST")),"%b-%y")
+providence = cbind(adply(tapply(mimsdata[mimsdata$Site=="Prov",]$N2Flux,mimsdata[mimsdata$Site=="Prov",]$date,mean), c(1)),adply(tapply(mimsdata[mimsdata$Site=="Prov",]$N2Flux,mimsdata[mimsdata$Site=="Prov",]$date,se), c(1)))[,-3]
+colnames(providence) = c("date","ProvN2_mean","ProvN2_stderr")
 
+midbay = cbind(adply(tapply(mimsdata[mimsdata$Site=="Mid Bay",]$N2Flux,mimsdata[mimsdata$Site=="Mid Bay",]$date,mean), c(1)),adply(tapply(mimsdata[mimsdata$Site=="Mid Bay",]$N2Flux,mimsdata[mimsdata$Site=="Mid Bay",]$date,se), c(1)))[-10,-3] # there is a one-off January 2010 Mid Bay sample?
+colnames(midbay) = c("date","BayN2_mean","BayN2_stderr")
+
+dat = merge(providence,midbay,by="date", all=T)
+dat$date = as.Date(paste(dat$date,"-01",sep=""))
+dat = dat[order(dat$date),]
+dat[,2] = round(dat[,2],2)
+dat[,3] = round(dat[,3],2)
+dat[,4] = round(dat[,4],2)
+dat[,5] = round(dat[,5],2)
+dat$date=format(as.POSIXct(strptime(dat$date,format="%Y-%m-%d",tz="EST")),"%b-%y")
 par(mfrow = c(1,2))
+
+
 #plot A - Providence River Estuary
 par(mai=c(1.4,1.4,1,0.1))
 mean <- dat$ProvN2_mean
@@ -74,16 +90,12 @@ par(mfrow = c(1,1))
 ##### Figure 4 ####
 
 
-#The linear model looks the same but my formla and R^2 is 
-
-#y = 0.03735 x - 3.33134   R^2 = 0.07
-
-
 #y = 0.038 x - 5.58 R^2 = 0.09   in the paper 
 
 par(mai=c(1.02,0.82,0.82,0.42))
 
-Fig4 <- read.csv("Fig4.csv", stringsAsFactors=FALSE)
+Fig4 <- mimsdata[c(-13,-40),] # omit the missing values, instead of calling them zero
+
 
 Fig4$sym = 0
 Fig4[which(Fig4[,1] == unique(Fig4[,1])[1]),]$sym = 19
